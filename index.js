@@ -91,7 +91,6 @@ async function placeOrder(signal) {
 
     // Send order request
     const response = await binanceClient.futuresOrder(orderParams);
-
     if (!response || response.status !== "NEW") {
       return `Order rejected: ${response.msg}`;
     } else {
