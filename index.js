@@ -17,6 +17,16 @@ const binanceClient = Binance({
 const app = express();
 app.use(express.json());
 
+// const signal = parseSignal({
+//   symbol: "ATAUSDT",
+//   price: "0.2132",
+//   signal: "Sell",
+// });
+
+// if (signal) {
+//   placeOrder(signal);
+// }
+
 // Function to parse incoming webhook messages
 function parseSignal(jsonSignal) {
   try {
@@ -43,11 +53,11 @@ function parseSignal(jsonSignal) {
 async function placeOrder(signal) {
   try {
     const side = signal.signal.toUpperCase() === "BUY" ? "BUY" : "SELL";
-
     // Fetch market price and instrument details
     const marketPriceData = await binanceClient.futuresPrices({
       symbol: signal.symbol,
     });
+    console.log("signal", signal);
 
     if (!marketPriceData || !marketPriceData[signal.symbol]) {
       return `Failed to get tickers`;
@@ -90,7 +100,9 @@ async function placeOrder(signal) {
     };
 
     // Send order request
+
     const response = await binanceClient.futuresOrder(orderParams);
+
     if (!response || response.status !== "NEW") {
       return `Order rejected: ${response.msg}`;
     } else {
@@ -99,90 +111,90 @@ async function placeOrder(signal) {
       );
     }
 
-    // Set Take Profit and Stop Loss
-    const takeProfitPrice1 =
-      side === "BUY"
-        ? (symbolPrice * 1.01).toFixed(4)
-        : (symbolPrice * 0.99).toFixed(4); // %1 yukarı/aşağı fiyat
+    // // Set Take Profit and Stop Loss
+    // const takeProfitPrice1 =
+    //   side === "BUY"
+    //     ? (symbolPrice * 1.01).toFixed(4)
+    //     : (symbolPrice * 0.99).toFixed(4); // %1 yukarı/aşağı fiyat
 
-    const takeProfitPrice2 =
-      side === "BUY"
-        ? (symbolPrice * 1.02).toFixed(4)
-        : (symbolPrice * 0.98).toFixed(4); // %2 yukarı/aşağı fiyat
-    const stopLossPrice =
-      side === "BUY"
-        ? (symbolPrice * 0.98).toFixed(4)
-        : (symbolPrice * 1.02).toFixed(4); // %1.8 aşağı/yukarı fiyat
+    // const takeProfitPrice2 =
+    //   side === "BUY"
+    //     ? (symbolPrice * 1.02).toFixed(4)
+    //     : (symbolPrice * 0.98).toFixed(4); // %2 yukarı/aşağı fiyat
+    // const stopLossPrice =
+    //   side === "BUY"
+    //     ? (symbolPrice * 0.98).toFixed(4)
+    //     : (symbolPrice * 1.02).toFixed(4); // %1.8 aşağı/yukarı fiyat
 
-    // Create Take Profit order
-    const takeProfitParams1 = {
-      symbol: signal.symbol,
-      side: side === "BUY" ? "SELL" : "BUY",
-      type: "TAKE_PROFIT_MARKET",
-      quantity: calculatedQuantity,
-      stopPrice: takeProfitPrice1,
-      reduceOnly: true,
-    };
+    // // Create Take Profit order
+    // const takeProfitParams1 = {
+    //   symbol: signal.symbol,
+    //   side: side === "BUY" ? "SELL" : "BUY",
+    //   type: "TAKE_PROFIT_MARKET",
+    //   quantity: calculatedQuantity,
+    //   stopPrice: takeProfitPrice1,
+    //   reduceOnly: true,
+    // };
 
-    const takeProfitParams2 = {
-      ...takeProfitParams1,
-      stopPrice: takeProfitPrice2,
-    };
+    // const takeProfitParams2 = {
+    //   ...takeProfitParams1,
+    //   stopPrice: takeProfitPrice2,
+    // };
 
-    try {
-      const takeProfitResponse1 = await binanceClient.futuresOrder(
-        takeProfitParams1
-      );
-      if (!takeProfitResponse1 || takeProfitResponse1.status !== "NEW") {
-        console.log(`Take profit 1 rejected: ${takeProfitResponse1.msg}`);
-      } else {
-        console.log(
-          `Take profit order 1 placed: ${signal.symbol} at ${takeProfitPrice1}`
-        );
-      }
+    // try {
+    //   const takeProfitResponse1 = await binanceClient.futuresOrder(
+    //     takeProfitParams1
+    //   );
+    //   if (!takeProfitResponse1 || takeProfitResponse1.status !== "NEW") {
+    //     console.log(`Take profit 1 rejected: ${takeProfitResponse1.msg}`);
+    //   } else {
+    //     console.log(
+    //       `Take profit order 1 placed: ${signal.symbol} at ${takeProfitPrice1}`
+    //     );
+    //   }
 
-      const takeProfitResponse2 = await binanceClient.futuresOrder(
-        takeProfitParams2
-      );
-      if (!takeProfitResponse2 || takeProfitResponse2.status !== "NEW") {
-        console.log(`Take profit 2 rejected: ${takeProfitResponse2.msg}`);
-      } else {
-        console.log(
-          `Take profit order 2 placed: ${signal.symbol} at ${takeProfitPrice2}`
-        );
-      }
-    } catch (error) {
-      console.log(
-        `An error occurred while placing take profit orders: ${JSON.stringify(
-          error
-        )}`
-      );
-    }
+    //   const takeProfitResponse2 = await binanceClient.futuresOrder(
+    //     takeProfitParams2
+    //   );
+    //   if (!takeProfitResponse2 || takeProfitResponse2.status !== "NEW") {
+    //     console.log(`Take profit 2 rejected: ${takeProfitResponse2.msg}`);
+    //   } else {
+    //     console.log(
+    //       `Take profit order 2 placed: ${signal.symbol} at ${takeProfitPrice2}`
+    //     );
+    //   }
+    // } catch (error) {
+    //   console.log(
+    //     `An error occurred while placing take profit orders: ${JSON.stringify(
+    //       error
+    //     )}`
+    //   );
+    // }
 
-    // Create Stop Loss order
-    const stopLossParams = {
-      symbol: signal.symbol,
-      side: side === "BUY" ? "SELL" : "BUY",
-      type: "STOP_MARKET",
-      quantity: calculatedQuantity,
-      stopPrice: stopLossPrice,
-      reduceOnly: true,
-    };
+    // // Create Stop Loss order
+    // const stopLossParams = {
+    //   symbol: signal.symbol,
+    //   side: side === "BUY" ? "SELL" : "BUY",
+    //   type: "STOP_MARKET",
+    //   quantity: calculatedQuantity,
+    //   stopPrice: stopLossPrice,
+    //   reduceOnly: true,
+    // };
 
-    try {
-      const stopLossResponse = await binanceClient.futuresOrder(stopLossParams);
-      if (!stopLossResponse || stopLossResponse.status !== "NEW") {
-        console.log(`Stop Loss rejected: ${stopLossResponse.msg}`);
-      } else {
-        console.log(`Stop Loss set for ${signal.symbol} at ${stopLossPrice}`);
-      }
-    } catch (error) {
-      console.log(
-        `An error occurred while placing the stop loss order: ${JSON.stringify(
-          error
-        )}`
-      );
-    }
+    // try {
+    //   const stopLossResponse = await binanceClient.futuresOrder(stopLossParams);
+    //   if (!stopLossResponse || stopLossResponse.status !== "NEW") {
+    //     console.log(`Stop Loss rejected: ${stopLossResponse.msg}`);
+    //   } else {
+    //     console.log(`Stop Loss set for ${signal.symbol} at ${stopLossPrice}`);
+    //   }
+    // } catch (error) {
+    //   console.log(
+    //     `An error occurred while placing the stop loss order: ${JSON.stringify(
+    //       error
+    //     )}`
+    //   );
+    // }
   } catch (error) {
     return `An error occurred while placing the order: ${JSON.stringify(
       error
