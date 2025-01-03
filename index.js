@@ -2,9 +2,8 @@ const Binance = require("binance-api-node").default;
 const express = require("express");
 dotenv = require("dotenv").config();
 
-const totalMarginSize = 10; // Total margin size in USDT
-const targetLeverage = 25; // Target leverage
-
+const totalMarginSize = process.env.TOTAL_MARGIN_SIZE;
+const targetLeverage = process.env.TARGET_LEVERAGE;
 const BINANCE_API_KEY = process.env.BINANCE_API_KEY;
 const BINANCE_API_SECRET = process.env.BINANCE_API_SECRET;
 
@@ -18,9 +17,9 @@ const app = express();
 app.use(express.json());
 
 // const signal = parseSignal({
-//   symbol: "ATAUSDT",
-//   price: "0.2132",
-//   signal: "Sell",
+//   symbol: "XRPUSDT",
+//   price: "0.2745",
+//   signal: "Buy",
 // });
 
 // if (signal) {
@@ -57,7 +56,6 @@ async function placeOrder(signal) {
     const marketPriceData = await binanceClient.futuresPrices({
       symbol: signal.symbol,
     });
-    console.log("signal", signal);
 
     if (!marketPriceData || !marketPriceData[signal.symbol]) {
       return `Failed to get tickers`;
@@ -91,6 +89,34 @@ async function placeOrder(signal) {
       Math.floor(calculatedQuantity / stepSize) * stepSize
     ).toFixed(8);
 
+    // Check and close opposite position if exists
+    const positionInfo = await binanceClient.futuresPositionRisk({
+      symbol: signal.symbol,
+    });
+
+    if (positionInfo && positionInfo.length > 0) {
+      const position = positionInfo[0];
+
+      if (
+        (side === "BUY" && parseFloat(position.positionAmt) > 0) ||
+        (side === "SELL" && parseFloat(position.positionAmt) < 0)
+      ) {
+        return `Position already exists for ${signal.symbol}`;
+      } else if (
+        (side === "BUY" && parseFloat(position.positionAmt) < 0) ||
+        (side === "SELL" && parseFloat(position.positionAmt) > 0)
+      ) {
+        // Close opposite position
+        const closeOrderParams = {
+          symbol: signal.symbol,
+          side: side,
+          type: "MARKET",
+          quantity: Math.abs(parseFloat(position.positionAmt)),
+        };
+        await binanceClient.futuresOrder(closeOrderParams);
+      }
+    }
+
     // Create order parameters
     const orderParams = {
       symbol: signal.symbol,
@@ -100,7 +126,6 @@ async function placeOrder(signal) {
     };
 
     // Send order request
-
     const response = await binanceClient.futuresOrder(orderParams);
 
     if (!response || response.status !== "NEW") {
